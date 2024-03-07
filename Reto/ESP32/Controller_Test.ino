@@ -11,6 +11,8 @@
 
 #define LED_PIN 13
 
+#define LED_DEBUG 5
+
 #define PWM_PIN 15
 #define PWM_CH 0
 #define PWM_FREQ 5000
@@ -45,9 +47,9 @@ float pwm_value = 0.0;
 unsigned long actual = 0;
 unsigned long anterior = 0;
 unsigned long tiempo = 0;
-uint8_t rpm = 0;
+unsigned long rpm = 0;
 
-uint8_t estado = 0;
+bool estado = 0;
 
 
 void subscription_callback(const void * msgin){  
@@ -57,12 +59,10 @@ void subscription_callback(const void * msgin){
 
 
 void IRAM_ATTR Read_Encoder() {
-  estado != estado;
-  digitalWrite(PWM_PIN, estado);
-  /*
+  digitalWrite(LED_DEBUG, !digitalRead(LED_DEBUG));
   actual = millis();
   tiempo = actual-anterior;
-  anterior = actual;*/
+  anterior = actual;
 }
 
 void error_loop(){
@@ -75,8 +75,8 @@ void error_loop(){
 void publish_wn_callback(rcl_timer_t * timer, int64_t last_call_time){  
   RCLC_UNUSED(last_call_time);
   if (timer != NULL){
-    //rpm = CONV/(tiempo*PULSES*REDUCTION);
-    msg_wn.data = 0;
+    rpm = CONV/(tiempo*PULSES*REDUCTION);
+    msg_wn.data = (int16_t)rpm;
     RCSOFTCHECK(rcl_publish(&publisher_wn, &msg_wn, NULL));
 
   }
@@ -85,6 +85,8 @@ void publish_wn_callback(rcl_timer_t * timer, int64_t last_call_time){
 void setup() {
   pinMode(LED_PIN, OUTPUT);
   pinMode(INT_ENCODER, INPUT);
+  pinMode(LED_DEBUG, OUTPUT);
+
   attachInterrupt(INT_ENCODER, Read_Encoder, RISING);
 
   ledcAttachPin(PWM_PIN, PWM_CH);
