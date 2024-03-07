@@ -19,7 +19,7 @@
 #define PWM_RESOLUTION 8
 
 #define REDUCTION 56
-#define PULSES 16
+#define PULSES 17
 #define CONV 60000000
 
 #define INT_ENCODER 32
@@ -47,7 +47,7 @@ float pwm_value = 0.0;
 unsigned long actual = 0;
 unsigned long anterior = 0;
 unsigned long tiempo = 0;
-unsigned long rpm = 0;
+int16_t rpm = 0;
 
 bool estado = 0;
 
@@ -60,7 +60,7 @@ void subscription_callback(const void * msgin){
 
 void IRAM_ATTR Read_Encoder() {
   digitalWrite(LED_DEBUG, !digitalRead(LED_DEBUG));
-  actual = millis();
+  actual = esp_timer_get_time();
   tiempo = actual-anterior;
   anterior = actual;
 }
@@ -76,7 +76,12 @@ void publish_wn_callback(rcl_timer_t * timer, int64_t last_call_time){
   RCLC_UNUSED(last_call_time);
   if (timer != NULL){
     rpm = CONV/(tiempo*PULSES*REDUCTION);
-    msg_wn.data = (int16_t)rpm;
+    if(rpm > 65){
+      rpm = 65;
+    }else if(rpm < 6){
+      rpm = 0;
+    }
+    msg_wn.data = rpm;
     RCSOFTCHECK(rcl_publish(&publisher_wn, &msg_wn, NULL));
 
   }
@@ -115,7 +120,7 @@ void setup() {
   ));
 
   //Timers
-    const unsigned int timer_period = 10;
+    const unsigned int timer_period = 20;
     RCCHECK(rclc_timer_init_default(
       &timer1,
       &support,
